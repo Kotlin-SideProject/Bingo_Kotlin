@@ -5,11 +5,15 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import com.firebase.ui.auth.AuthUI
-import com.google.android.gms.auth.api.Auth
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import java.util.*
 
 class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
@@ -43,7 +47,35 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
                         .setValue(this)
                         .addOnCompleteListener { Log.d(TAG, ": done"); }
             }
+            FirebaseDatabase.getInstance().getReference("users")
+                .child(it.uid)
+                .child("nickName")
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onCancelled(error: DatabaseError) {
+                    }
+
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        dataSnapshot.value?.also { nick ->
+                            Log.d(TAG, "nickname: ${nick}");
+                        }?:showNickDialog(it)
+                    }
+                })
         }?:signUp()
+    }
+
+    private fun showNickDialog(user: FirebaseUser) {
+        val nickEdit =  EditText(this)
+        nickEdit.setText(user.displayName)
+        AlertDialog.Builder(this)
+            .setTitle("Your nickname?")
+            .setMessage("Please enter your nickname")
+            .setView(nickEdit)
+            .setPositiveButton("OK") { dialog, which ->
+                FirebaseDatabase.getInstance().getReference("users")
+                    .child(user.uid)
+                    .child("nickName")
+                    .setValue(nickEdit.text.toString())
+            }.show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
