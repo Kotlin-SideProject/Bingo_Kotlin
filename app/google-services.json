@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "902850678989",
+    "firebase_url": "https://bingo-57f46.firebaseio.com",
+    "project_id": "bingo-57f46",
+    "storage_bucket": "bingo-57f46.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:902850678989:android:6f580eea2f89da2cced984",
+        "android_client_info": {
+          "package_name": "com.angus.bingo_java"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "902850678989-jisvn5a2rpv7gvmcgt7t2vch4u7ctsfh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAn7hVcT1Oobx0FaEvaPtKtkOlfwPYIc8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "902850678989-jisvn5a2rpv7gvmcgt7t2vch4u7ctsfh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:902850678989:android:04ec0d5747cf2f43ced984",
+        "android_client_info": {
+          "package_name": "com.angus.bingo_kotlin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "902850678989-jisvn5a2rpv7gvmcgt7t2vch4u7ctsfh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAn7hVcT1Oobx0FaEvaPtKtkOlfwPYIc8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "902850678989-jisvn5a2rpv7gvmcgt7t2vch4u7ctsfh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
