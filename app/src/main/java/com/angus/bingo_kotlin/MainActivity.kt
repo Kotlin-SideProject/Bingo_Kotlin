@@ -14,6 +14,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
@@ -45,9 +46,23 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
                         .child(it.uid)
                         .child("displayName")
                         .setValue(this)
-                        .addOnCompleteListener { Log.d(TAG, ": done"); }
+                        .addOnCompleteListener { Log.d(TAG, ": done") }
             }
             FirebaseDatabase.getInstance().getReference("users")
+                .child(it.uid)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onCancelled(error: DatabaseError) {
+
+                    }
+
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        val member = dataSnapshot.getValue(Member::class.java)
+                        member?.nickName?.also { nick ->
+                            nickname.setText(nick)
+                        }?:showNickDialog(it)
+                    }
+                })
+            /*FirebaseDatabase.getInstance().getReference("users")
                 .child(it.uid)
                 .child("nickName")
                 .addListenerForSingleValueEvent(object : ValueEventListener {
@@ -59,7 +74,7 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
                             Log.d(TAG, "nickname: ${nick}");
                         }?:showNickDialog(it)
                     }
-                })
+                })*/
         }?:signUp()
     }
 
