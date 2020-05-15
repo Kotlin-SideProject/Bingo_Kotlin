@@ -1,12 +1,13 @@
 package com.angus.bingo_kotlin
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import com.firebase.ui.auth.AuthUI
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -17,15 +18,58 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
-class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
+class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.OnClickListener {
 
     companion object{
         var TAG = MainActivity::class.java.simpleName
         var RC_SIGN_IN = 100
     }
+
+    var member: Member? = null
+    var avatarIds = intArrayOf(
+        R.drawable.avatar_0,
+        R.drawable.avatar_1,
+        R.drawable.avatar_2,
+        R.drawable.avatar_3,
+        R.drawable.avatar_4,
+        R.drawable.avatar_5,
+        R.drawable.avatar_6
+    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        nickname.setOnClickListener {
+            FirebaseAuth.getInstance().currentUser?.let {user ->
+                showNickDialog(user.uid, nickname.text.toString())
+            }
+        }
+        group_avatars.visibility = View.GONE
+        avatar.setOnClickListener {
+            group_avatars.visibility = if (group_avatars.visibility == View.GONE)
+                View.VISIBLE else View.GONE
+        }
+        avatar_0.setOnClickListener(this)
+        avatar_1.setOnClickListener(this)
+        avatar_2.setOnClickListener(this)
+        avatar_3.setOnClickListener(this)
+        avatar_4.setOnClickListener(this)
+        avatar_5.setOnClickListener(this)
+        avatar_6.setOnClickListener(this)
+        fab.setOnClickListener {
+            val roomEdit =  EditText(this)
+            roomEdit.setText("wellcome")
+            AlertDialog.Builder(this)
+                .setTitle("Game Room")
+                .setMessage("Please enter your room title")
+                .setView(roomEdit)
+                .setPositiveButton("OK") { dialog, which ->
+                    FirebaseDatabase.getInstance().getReference("users")
+                    var room = GameRoom(roomEdit.text.toString(), member)
+                    FirebaseDatabase.getInstance().getReference("rooms")
+                        .push()
+                        .setValue(room)
+                }.show()
+        }
     }
 
     override fun onStart() {
@@ -47,6 +91,11 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
                         .child("displayName")
                         .setValue(this)
                         .addOnCompleteListener { Log.d(TAG, ": done") }
+
+                FirebaseDatabase.getInstance().getReference("users")
+                    .child(it.uid)
+                    .child("uid")
+                    .setValue(it.uid)
             }
             FirebaseDatabase.getInstance().getReference("users")
                 .child(it.uid)
@@ -56,41 +105,38 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
                     }
 
                     override fun onDataChange(dataSnapshot: DataSnapshot) {
-                        val member = dataSnapshot.getValue(Member::class.java)
+                         member = dataSnapshot.getValue(Member::class.java)
                         member?.nickName?.also { nick ->
                             nickname.setText(nick)
                         }?:showNickDialog(it)
+                        member?.avatarId?.let { avatarId ->
+                            avatar.setImageResource(avatarIds[member!!.avatarId])
+                        }
                     }
                 })
-            /*FirebaseDatabase.getInstance().getReference("users")
-                .child(it.uid)
-                .child("nickName")
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onCancelled(error: DatabaseError) {
-                    }
 
-                    override fun onDataChange(dataSnapshot: DataSnapshot) {
-                        dataSnapshot.value?.also { nick ->
-                            Log.d(TAG, "nickname: ${nick}");
-                        }?:showNickDialog(it)
-                    }
-                })*/
         }?:signUp()
     }
 
-    private fun showNickDialog(user: FirebaseUser) {
+
+    private fun showNickDialog(uid : String, nickname : String){
         val nickEdit =  EditText(this)
-        nickEdit.setText(user.displayName)
+        nickEdit.setText(nickname)
         AlertDialog.Builder(this)
             .setTitle("Your nickname?")
             .setMessage("Please enter your nickname")
             .setView(nickEdit)
             .setPositiveButton("OK") { dialog, which ->
                 FirebaseDatabase.getInstance().getReference("users")
-                    .child(user.uid)
+                    .child(uid)
                     .child("nickName")
                     .setValue(nickEdit.text.toString())
             }.show()
+    }
+    private fun showNickDialog(user: FirebaseUser) {
+        val uid = user.uid
+        val nickname = user.displayName
+        showNickDialog(uid, nickname!!)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -114,5 +160,23 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
 //                        .setIsSmartLockEnabled(false)
                         .build()
                 , RC_SIGN_IN)
+    }
+
+    override fun onClick(v: View?) {
+        var selected = when (v?.id){
+            R.id.avatar_0 -> 0
+            R.id.avatar_1 -> 1
+            R.id.avatar_2 -> 2
+            R.id.avatar_3 -> 3
+            R.id.avatar_4 -> 4
+            R.id.avatar_5 -> 5
+            R.id.avatar_6 -> 6
+            else -> 0
+        }
+        FirebaseDatabase.getInstance().getReference("users")
+            .child(FirebaseAuth.getInstance().currentUser?.uid!!)
+            .child("avatarId")
+            .setValue(selected)
+        group_avatars.visibility = View.GONE
     }
 }
