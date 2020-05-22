@@ -2,13 +2,18 @@ package com.angus.bingo_kotlin
 
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import android.view.*
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.auth.AuthUI
+import com.firebase.ui.database.FirebaseRecyclerAdapter
+import com.firebase.ui.database.FirebaseRecyclerOptions
+import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -16,6 +21,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.room_row.view.*
 import java.util.*
 
 class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.OnClickListener {
@@ -25,6 +31,7 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
         var RC_SIGN_IN = 100
     }
 
+    private lateinit var adapter: FirebaseRecyclerAdapter<GameRoom, GameHolder>
     var member: Member? = null
     var avatarIds = intArrayOf(
         R.drawable.avatar_0,
@@ -70,16 +77,43 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
                         .setValue(room)
                 }.show()
         }
+        //recyclerView setting
+        recycler.setHasFixedSize(true)
+        recycler.layoutManager = LinearLayoutManager(this@MainActivity)
+        var query = FirebaseDatabase.getInstance().getReference("rooms").limitToLast(30)
+        val options = FirebaseRecyclerOptions.Builder<GameRoom>()
+            .setQuery(query, GameRoom::class.java)
+            .build()
+         adapter = object : FirebaseRecyclerAdapter<GameRoom, GameHolder>(options){
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GameHolder {
+             val view = LayoutInflater.from(this@MainActivity)
+                 .inflate(R.layout.room_row, parent, false)
+                return GameHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: GameHolder, position: Int, model: GameRoom) {
+                holder.image.setImageResource(avatarIds[model.init!!.avatarId])
+                holder.roomTitle.setText(model.title)
+            }
+
+        }
+        recycler.adapter = adapter
+    }
+    class GameHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
+        val image:ImageView = itemView.room_image
+        val roomTitle:TextView = itemView.room_text
     }
 
     override fun onStart() {
         super.onStart()
         FirebaseAuth.getInstance().addAuthStateListener(this)
+        adapter.startListening()
     }
 
     override fun onStop() {
         super.onStop()
         FirebaseAuth.getInstance().removeAuthStateListener(this)
+        adapter.stopListening()
     }
 
     override fun onAuthStateChanged(auth: FirebaseAuth) {
