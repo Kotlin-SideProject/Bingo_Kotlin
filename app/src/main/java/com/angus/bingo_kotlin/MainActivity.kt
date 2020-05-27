@@ -1,5 +1,6 @@
 package com.angus.bingo_kotlin
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -13,13 +14,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
-import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.room_row.view.*
 import java.util.*
@@ -74,12 +71,23 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
                     var room = GameRoom(roomEdit.text.toString(), member)
                     FirebaseDatabase.getInstance().getReference("rooms")
                         .push()
-                        .setValue(room)
-                }.show()
+                        .setValue(room, object : DatabaseReference.CompletionListener {
+                            override fun onComplete(error: DatabaseError?, databaseReference: DatabaseReference) {
+                                val roomId = databaseReference.key
+                                val bingoIntent = Intent(this@MainActivity, BingoActivity::class.java)
+                                bingoIntent.putExtra("ROOM_ID", roomId)
+                                bingoIntent.putExtra("IS_CREATOR", true)
+                                startActivity(bingoIntent)
+                            }
+
+                        })
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
         //recyclerView setting
-        recycler.setHasFixedSize(true)
-        recycler.layoutManager = LinearLayoutManager(this@MainActivity)
+        main_recycler.setHasFixedSize(true)
+        main_recycler.layoutManager = LinearLayoutManager(this@MainActivity)
         var query = FirebaseDatabase.getInstance().getReference("rooms").limitToLast(30)
         val options = FirebaseRecyclerOptions.Builder<GameRoom>()
             .setQuery(query, GameRoom::class.java)
@@ -97,7 +105,7 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
             }
 
         }
-        recycler.adapter = adapter
+        main_recycler.adapter = adapter
     }
     class GameHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
         val image:ImageView = itemView.room_image
