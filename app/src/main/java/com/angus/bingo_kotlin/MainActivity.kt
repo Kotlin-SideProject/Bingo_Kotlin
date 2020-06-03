@@ -74,6 +74,10 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
                         .setValue(room, object : DatabaseReference.CompletionListener {
                             override fun onComplete(error: DatabaseError?, databaseReference: DatabaseReference) {
                                 val roomId = databaseReference.key
+                                FirebaseDatabase.getInstance().getReference("rooms")
+                                    .child(roomId.toString())
+                                    .child("id")
+                                    .setValue(roomId)
                                 val bingoIntent = Intent(this@MainActivity, BingoActivity::class.java)
                                 bingoIntent.putExtra("ROOM_ID", roomId)
                                 bingoIntent.putExtra("IS_CREATOR", true)
@@ -102,6 +106,11 @@ class MainActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener, View.O
             override fun onBindViewHolder(holder: GameHolder, position: Int, model: GameRoom) {
                 holder.image.setImageResource(avatarIds[model.init!!.avatarId])
                 holder.roomTitle.setText(model.title)
+                holder.itemView.setOnClickListener {
+                    val bingoIntent = Intent(this@MainActivity, BingoActivity::class.java)
+                    bingoIntent.putExtra("ROOM_ID", model.id)
+                    startActivity(bingoIntent)
+                }
             }
 
         }
