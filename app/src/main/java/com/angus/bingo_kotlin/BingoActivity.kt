@@ -1,18 +1,20 @@
 package com.angus.bingo_kotlin
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.common.ChangeEventType
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.android.synthetic.main.activity_bingo.*
 import kotlinx.android.synthetic.main.single_button.view.*
 
@@ -26,6 +28,38 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
         val STATUS_JOINER_TURN = 4
         val STATUS_CREATOR_BINGO = 5
         val STATUS_JOINER_BINGO = 6
+    }
+
+    var myturn : Boolean = false
+    var statusListener = object : ValueEventListener {
+        override fun onCancelled(databaseError: DatabaseError) {
+        }
+
+        override fun onDataChange(dataSnapshot: DataSnapshot) {
+            var status  = dataSnapshot.getValue() as Long
+            Log.d(TAG, "status: ${status}");
+            when(status.toInt()){
+                STATUS_CREATED -> {
+                    info.setText("等待對手加入中")
+                }
+                STATUS_JOINED -> {
+                    info.setText("對手已加入")
+                FirebaseDatabase.getInstance().getReference("rooms")
+                    .child(roomId)
+                    .child("status")
+                    .setValue(STATUS_CREATOR_TURN)
+                }
+                STATUS_CREATOR_TURN -> {
+                    myturn = isCreator
+                    if(isCreator) info.setText("請選球") else info.setText("等待對方選球中")
+                }
+                STATUS_JOINER_TURN -> {
+                    myturn = !isCreator
+                    if(!isCreator) info.setText("請選球") else info.setText("等待對方選球中")
+                }
+                else ->  100
+            }
+        }
     }
 
     lateinit var adapter: FirebaseRecyclerAdapter<Boolean, BingoActivity.numberHolder>
@@ -89,7 +123,6 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
 
             override fun onBindViewHolder(holder: numberHolder, position: Int, model: Boolean) {
                 holder.button.text = buttons[position].number.toString()
-//                holder.button.isEnabled = !model
                 holder.button.number = buttons.get(position).number
                 holder.button.isEnabled = !buttons.get(position).picked
                 holder.button.setOnClickListener(this@BingoActivity)
@@ -104,14 +137,33 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
                  super.onChildChanged(type, snapshot, newIndex, oldIndex)
                  if(type == ChangeEventType.CHANGED){
                      val number = snapshot.key?.toInt()
-                     Log.d(TAG, "number: ${number}")
                      val position = numberMap.get(number)
-                     Log.d(TAG, "position: ${position}");
                      val picked = snapshot.value as Boolean
-                     Log.d(TAG, "picked:${picked} ");
                      buttons.get(position!!).picked = picked
                      val holder : numberHolder = bingo_recycler.findViewHolderForAdapterPosition(position!!) as numberHolder
                      holder.button.isEnabled = !picked
+                     //bingo judge
+                     val nums = IntArray(25)
+
+                     for (i in 0..24) {
+                         nums[i] = if (buttons[i].picked) 1 else 0
+                     }
+                     var bingo = 0
+                     for (i in 0..4) {
+                         var sum = 0
+                         for (j in 0..4) {
+                             sum += nums[i * 5 + j] // 0 1 2 3 4
+                         }
+                         if (sum == 5) bingo += 1
+                         sum = 0
+                         for (j in 0..4) {
+                             sum += nums[i + j * 5] // 0 5 10 15 20
+                         }
+                         if (sum == 5) bingo += 1
+                         sum = 0
+                     }
+                     Log.d(TAG, "onChildChanged: bingo $bingo")
+
                  }
              }
          }
@@ -128,19 +180,34 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
     override fun onStart() {
         super.onStart()
         adapter.startListening()
+        FirebaseDatabase.getInstance().getReference("rooms")
+            .child(roomId)
+            .child("status")
+            .addValueEventListener(statusListener)
     }
 
     override fun onStop() {
         super.onStop()
         adapter.stopListening()
+        FirebaseDatabase.getInstance().getReference("rooms")
+            .child(roomId)
+            .child("status")
+            .removeEventListener(statusListener)
     }
 
     override fun onClick(v: View?) {
-        val number = (v as NumberButton).number
-        FirebaseDatabase.getInstance().getReference("rooms")
-            .child(roomId)
-            .child("numbers")
-            .child(number.toString())
-            .setValue(true)
+        if (myturn){
+            val number = (v as NumberButton).number
+            FirebaseDatabase.getInstance().getReference("rooms")
+                .child(roomId)
+                .child("numbers")
+                .child(number.toString())
+                .setValue(true)
+
+            FirebaseDatabase.getInstance().getReference("rooms")
+                .child(roomId)
+                .child("status")
+                .setValue(if (isCreator) STATUS_JOINER_TURN else STATUS_CREATOR_TURN)
+        }
     }
 }
