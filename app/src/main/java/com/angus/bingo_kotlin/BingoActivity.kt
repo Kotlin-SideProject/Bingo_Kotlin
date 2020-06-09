@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -57,9 +58,39 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
                     myturn = !isCreator
                     if(!isCreator) info.setText("請選球") else info.setText("等待對方選球中")
                 }
-                else ->  100
+                STATUS_CREATOR_BINGO -> {
+                    AlertDialog.Builder(this@BingoActivity)
+                        .setTitle("BINGO結果")
+                        .setMessage(if(isCreator) "恭喜BINGO了" else "對方BINGO了")
+                        .setPositiveButton("OK"){dialog, which ->
+                            endGame()
+                        }
+                        .show()
+                }
+                STATUS_JOINER_BINGO -> {
+                    AlertDialog.Builder(this@BingoActivity)
+                        .setTitle("BINGO結果")
+                        .setMessage(if(!isCreator) "恭喜BINGO了" else "對方BINGO了")
+                        .setPositiveButton("OK"){dialog, which ->
+                            endGame()
+                        }
+                        .show()
+                }
             }
         }
+    }
+
+    private fun endGame() {
+        FirebaseDatabase.getInstance().getReference("rooms")
+            .child(roomId)
+            .child("status")
+            .removeEventListener(statusListener)
+        if (isCreator){
+            FirebaseDatabase.getInstance().getReference("rooms")
+                .child(roomId)
+                .removeValue()
+        }
+        finish()
     }
 
     lateinit var adapter: FirebaseRecyclerAdapter<Boolean, BingoActivity.numberHolder>
@@ -163,7 +194,12 @@ class BingoActivity : AppCompatActivity(), View.OnClickListener {
                          sum = 0
                      }
                      Log.d(TAG, "onChildChanged: bingo $bingo")
-
+                     if(bingo > 0){
+                         FirebaseDatabase.getInstance().getReference("rooms")
+                             .child(roomId)
+                             .child("status")
+                             .setValue( if(isCreator) STATUS_CREATOR_BINGO else STATUS_JOINER_BINGO)
+                     }
                  }
              }
          }
